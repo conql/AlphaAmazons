@@ -110,7 +110,7 @@ if __name__ == "__main__":
     )
 
     net = NeuralNet()
-    model_name = "model_05_40x128.pt"
+    model_name = "model_06_40x128.pt"
     if os.path.exists(model_name):
         net.load(path=model_name)
 
