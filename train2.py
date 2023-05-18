@@ -67,7 +67,9 @@ def collate_fn(batch):
 
         input.append(NeuralNet.process_input(board, player, 0))
         input.append(NeuralNet.process_input(board, player, 1, answer[0], answer[1]))
-        input.append(NeuralNet.process_input(new_board, player, 2, answer[2], answer[3]))
+        input.append(
+            NeuralNet.process_input(new_board, player, 2, answer[2], answer[3])
+        )
 
         rand_val = torch.randn(3)
 
@@ -80,7 +82,14 @@ def collate_fn(batch):
         )
 
         p3, v3 = NeuralNet.process_output(
-            rand_val[2], answer[4], answer[5], new_board, player, 2, answer[2], answer[3]
+            rand_val[2],
+            answer[4],
+            answer[5],
+            new_board,
+            player,
+            2,
+            answer[2],
+            answer[3],
         )
 
         policies.append(p1)
@@ -95,7 +104,7 @@ def collate_fn(batch):
     input = torch.stack(input)
     policies = torch.stack(policies)
     values = torch.stack(values)
-    return input, (policies, values)
+    return input[0:], (policies[0:], values[0:])
 
 
 if __name__ == "__main__":
@@ -110,7 +119,7 @@ if __name__ == "__main__":
     )
 
     net = NeuralNet()
-    model_name = "model_06_40x128.pt"
+    model_name = "model_02_20x128.pt"
     if os.path.exists(model_name):
         net.load(path=model_name)
 

@@ -269,7 +269,7 @@ if __name__ == "__main__":
             #     process_match(match)
 
             original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-            with multiprocessing.Pool(10) as pool:
+            with multiprocessing.Pool(8) as pool:
                 signal.signal(signal.SIGINT, original_sigint_handler)
                 try:
                     for p in tqdm(

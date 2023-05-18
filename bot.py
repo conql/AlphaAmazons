@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 boardH = 8
 boardW = 8
-in_channel = 5
+in_channel = 7
 
 
 class CNNLayer(nn.Module):
@@ -216,25 +216,29 @@ def process_input(board, player, stage, preActionX=None, preActionY=None):
     #       [2, ] obstacles
     #       [3, ] selected piece
     #       [4, ] selected new move
+    #       [5, ] stage 1 flag
+    #       [6, ] stage 2 flag
 
-    board = board.clone()
-    data = torch.zeros((5, 8, 8))
+    board = torch.tensor(board)
+
+    data = torch.zeros((7, 8, 8))
 
     data[0, :, :] = (board == player).float()
     data[1, :, :] = (board == 3 - player).float()
     data[2, :, :] = (board == 3).float()
 
-    if data.shape[0] == 3:
-        zero_channels = torch.zeros(5 - data.shape[0], 8, 8)
-        data = torch.cat((data, zero_channels), dim=0)
-
-    if data.shape[0] != 5:
-        raise ValueError("Invalid number of channels")
-
     if stage == 1:
+        if board[preActionY, preActionX] != player:
+            # pprint(board)
+            raise ValueError("Moving non-player piece")
         data[3, preActionY, preActionX] = 1
+        data[5, :, :] = 1
     elif stage == 2:
+        if board[preActionY, preActionX] != player:
+            # pprint(board)
+            raise ValueError("Placing obstacle from non-player piece")
         data[4, preActionY, preActionX] = 1
+        data[6, :, :] = 1
 
     # swap first two channels if playing as player 2
     if player != 1:
@@ -254,7 +258,7 @@ def predict(model, chessboard: Chessboard, player, stage, preActionX=None, preAc
     policy = policy[0]
     policy_prob = F.softmax(policy.view(-1), dim=0).view(policy.shape)
 
-    pprint(policy_prob.log10())
+    pprint(policy_prob.log10().round(decimals=2))
 
     # mask invalid moves
     valid_moves = chessboard.get_valid_moves(player, stage, preActionX, preActionY)
@@ -279,7 +283,7 @@ def load_model(model_path):
 
 
 if __name__ == "__main__":
-    model = load_model("data/model_05_40x128.pt")
+    model = load_model("data/model_07_40x128.pt")
     chessboard = Chessboard()
 
     round = int(input())

@@ -1,9 +1,10 @@
 from pprint import pprint
 import numpy
-import config
 
 
-def get_valid_moves(board:numpy.ndarray, player, stage, preActionX=None, preActionY=None):
+def get_valid_moves(
+    board: numpy.ndarray, player, stage, preActionX=None, preActionY=None
+):
     valid_moves = numpy.zeros((8, 8), dtype=numpy.int8)
     # Stage 0: Select chess
     if stage == 0:
@@ -22,7 +23,9 @@ def get_valid_moves(board:numpy.ndarray, player, stage, preActionX=None, preActi
     return valid_moves
 
 
-def get_next_state(board:numpy.ndarray, player, stage, ax, ay, preActionX=None, preActionY=None):
+def get_next_state(
+    board: numpy.ndarray, player, stage, ax, ay, preActionX=None, preActionY=None
+):
     if stage == 0:
         assert board[ay, ax] == player
         return (board, player, 1, ax, ay)
@@ -42,7 +45,9 @@ def get_next_state(board:numpy.ndarray, player, stage, ax, ay, preActionX=None, 
             raise ValueError("Invalid stage")
 
 
-def get_game_ended(board:numpy.ndarray, player, stage, preActionX=None, preActionY=None):
+def get_game_ended(
+    board: numpy.ndarray, player, stage, preActionX=None, preActionY=None
+):
     valid = get_valid_moves(board, player, stage, preActionX, preActionY)
     if valid.sum() == 0:
         return -1  # player loses
@@ -114,6 +119,21 @@ def is_valid_obstacle(board, x1, y1, x2, y2):
     return False
 
 
+def is_valid_act(board, player, x0, y0, x1, y1, x2, y2):
+    if player != 1 and player != 2:
+        return False
+
+    board = board.copy()
+    if is_valid_move(board, player, x0, y0, x1, y1):
+        board[y0, x0] = 0
+        board[y1, x1] = player
+        
+        if is_valid_obstacle(board, x1, y1, x2, y2):
+            return True
+    else:
+        return False            
+
+
 def take_act(board, player, response):
     x0, y0, x1, y1, x2, y2 = map(int, response.split())
 
@@ -151,7 +171,6 @@ def init_board():
 
     return board
 
-
 class Chessboard:
     def __init__(self) -> None:
         self.board = init_board()
@@ -162,3 +181,14 @@ class Chessboard:
         take_act(self.board, self.player, response)
         self.player = 3 - self.player
         self.history.append(response)
+
+    def is_game_over(self):
+        my_pieces = numpy.argwhere(self.board == self.player)
+        valid_move_count = 0
+        for piece in my_pieces:
+            valid_move_count += len(get_queen_moves(self.board, piece[1], piece[0]))
+
+        if valid_move_count == 0:
+            return True
+        else:
+            return False

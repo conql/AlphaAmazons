@@ -1,8 +1,13 @@
+import hashlib
 import json
+import os
 from pprint import pprint
 import random
 import lmdb
+from tqdm import tqdm
 from preprocessing import Chessboard
+import pickle
+import numpy as np
 
 
 def validate_data_item(txn, key):
@@ -93,7 +98,76 @@ def generate_test_and_train(db_path="data/lmdb", train_percent=0.9):
 
     env.close()
 
+
 def data_augmentation(db_path="data/lmdb"):
     pass
 
-generate_test_and_train()
+def md5(data):
+    return hashlib.md5(data).hexdigest()
+
+def convert_lmdb_pickle(db_path="data/lmdb", output_dir="data/init"):
+    env = lmdb.open(
+        path=db_path,
+        readonly=True,
+        lock=False,
+        readahead=False,
+        meminit=False,
+        map_size=2**29,
+    )
+    total_entries = env.stat()["entries"]
+    
+    all_datas = []
+    current_block = {}
+
+    with env.begin() as txn:
+        cursor = txn.cursor()
+        for key, value in tqdm(cursor, total=total_entries):
+            key = key.decode()
+            value = json.loads(value.decode())
+
+            board = np.array(value[0], dtype=np.int8)
+            move = np.array([int(x) for x in value[1].split(" ")], dtype=np.int8)
+
+            current_player = board[move[1], move[0]]
+            if current_player == 1:
+                pass
+            elif current_player == 2:
+                # replace 1 with 2 and 2 with 1
+                board[board == 1] = 6
+                board[board == 2] = 1
+                board[board == 6] = 2
+            else:
+                raise Exception(f"Invalid current player: {current_player}")
+
+
+            new_key = md5(board.tobytes())
+
+            current_block[new_key] = (board, move)
+
+            if len(current_block) == 100000:
+                all_datas.append(current_block)
+                current_block = {}
+    
+    all_datas.append(current_block)
+
+    # print data size
+    print(f"Total data: {total_entries}, total blocks: {len(all_datas)}")
+    print("Writing data to pickle")
+    # with open("data/data.pickle", "wb") as f:
+    #     pickle.dump(data, f)
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for i, data in enumerate(all_datas):
+        with open(os.path.join(output_dir, f"block_{i:02d}.pickle"), "wb") as f:
+            pickle.dump(data, f)
+    print("Done")
+
+
+if __name__ == "__main__":
+    # validate_data()
+    # display_random_items()
+    # generate_test_and_train()
+    # data_augmentation()
+    convert_lmdb_pickle()
