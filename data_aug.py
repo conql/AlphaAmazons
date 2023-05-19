@@ -84,8 +84,8 @@ def augment(func, data: list[tuple[numpy.ndarray, tuple]]):
 
 if __name__ == "__main__":
     input_path = "data/init/*.pickle"
-    output_path = "data/augment"
-    multiplier = 5
+    output_path = "data/augment3"
+    multiplier = 0
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -100,9 +100,9 @@ if __name__ == "__main__":
 
     for key, round in tqdm(data.items(), unit="round"):
         rounds = [round]
-        rounds.extend(augment(horizontal_flip, rounds))
-        rounds.extend(augment(vertical_flip, rounds))
-        rounds.extend(augment(rotate, rounds))
+        rounds = augment(horizontal_flip, rounds)
+        rounds = augment(vertical_flip, rounds)
+        rounds = augment(rotate, rounds)
 
         # # validate all rounds
         # for board, ans in rounds:
@@ -112,7 +112,10 @@ if __name__ == "__main__":
         #     if not game.is_valid_act(board, player, *ans):
         #         raise Exception(f"Invalid act: '{ans}'\n" + str(board))
 
-        add = random.sample(rounds, k=multiplier)
+        if multiplier != 0:
+            add = random.sample(rounds, k=multiplier)
+        else:
+            add = rounds
         for board, ans in add:
             new_data[md5(board.tobytes())] = (board, ans)
 

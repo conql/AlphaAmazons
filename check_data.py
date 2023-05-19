@@ -1,3 +1,4 @@
+from glob import glob
 import hashlib
 import json
 import os
@@ -8,6 +9,7 @@ from tqdm import tqdm
 from preprocessing import Chessboard
 import pickle
 import numpy as np
+import game
 
 
 def validate_data_item(txn, key):
@@ -102,8 +104,10 @@ def generate_test_and_train(db_path="data/lmdb", train_percent=0.9):
 def data_augmentation(db_path="data/lmdb"):
     pass
 
+
 def md5(data):
     return hashlib.md5(data).hexdigest()
+
 
 def convert_lmdb_pickle(db_path="data/lmdb", output_dir="data/init"):
     env = lmdb.open(
@@ -115,7 +119,7 @@ def convert_lmdb_pickle(db_path="data/lmdb", output_dir="data/init"):
         map_size=2**29,
     )
     total_entries = env.stat()["entries"]
-    
+
     all_datas = []
     current_block = {}
 
@@ -139,7 +143,6 @@ def convert_lmdb_pickle(db_path="data/lmdb", output_dir="data/init"):
             else:
                 raise Exception(f"Invalid current player: {current_player}")
 
-
             new_key = md5(board.tobytes())
 
             current_block[new_key] = (board, move)
@@ -147,7 +150,7 @@ def convert_lmdb_pickle(db_path="data/lmdb", output_dir="data/init"):
             if len(current_block) == 100000:
                 all_datas.append(current_block)
                 current_block = {}
-    
+
     all_datas.append(current_block)
 
     # print data size
@@ -165,9 +168,56 @@ def convert_lmdb_pickle(db_path="data/lmdb", output_dir="data/init"):
     print("Done")
 
 
+def validate_data_2(input_path="data/init/*.pickle"):
+    from preprocessing2 import get_answer
+
+    input_paths = glob(input_path, recursive=False)
+
+    data = {}
+    for path in tqdm(input_paths, desc="Loading data", unit="file"):
+        data = {**data, **pickle.load(open(path, "rb"))}
+
+    keys = list(data.keys())
+    random.shuffle(keys)
+
+    wrong_count = 0
+    for i, key in tqdm(enumerate(keys), desc="Verifying data"):
+        (board, answer) = data[key]
+        ac = get_answer(board, board[answer[1], answer[0]])
+
+        if ac != list(answer):
+            wrong_count += 1
+            tqdm.write(f"{wrong_count}/{i} ({wrong_count/i*100:.02f})")
+
+
+def validate_data_3(input_path="data/augment2/*.pickle"):
+    from preprocessing2 import get_answer
+
+    input_paths = glob(input_path, recursive=False)
+
+    data = {}
+    for path in tqdm(input_paths, desc="Loading data", unit="file"):
+        data = {**data, **pickle.load(open(path, "rb"))}
+
+    keys = list(data.keys())
+    print(f"Total length: {len(keys)}")
+    random.shuffle(keys)
+
+    wrong_count = 0
+    for i, key in tqdm(enumerate(keys), desc="Verifying data", total=len(keys)):
+        (board, answer) = data[key]
+        if not game.is_valid_act(board, board[answer[1], answer[0]], *answer):
+            wrong_count += 1
+            tqdm.write(f"{wrong_count}/{i} ({wrong_count/i*100:.02f})")
+
+    tqdm.write(f"{wrong_count}/{len(keys)}")
+
+
 if __name__ == "__main__":
     # validate_data()
     # display_random_items()
     # generate_test_and_train()
     # data_augmentation()
-    convert_lmdb_pickle()
+    # convert_lmdb_pickle()
+
+    validate_data_3()

@@ -1,7 +1,7 @@
 import neptune
 
 use_gpu = True
-lr = 0.01
+lr = 0.001
 batch_size = 64
 epochs = 2
 

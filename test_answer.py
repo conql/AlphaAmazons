@@ -31,6 +31,8 @@ if __name__ == "__main__":
         with open("2.in", "w") as f:
             f.write(in2)
     
+    print("1:")
     os.system("answer1.exe < 1.in")
+    print("2:")
     os.system("answer2.exe < 2.in")
 

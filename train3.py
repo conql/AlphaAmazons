@@ -95,7 +95,7 @@ def load_dataset(path):
 
 
 if __name__ == "__main__":
-    model_name = "model_08_40x128.pt"
+    model_name = "model_09_40x128.pt"
     data_path = "data/augment/train/*.pickle"
 
     config.init()

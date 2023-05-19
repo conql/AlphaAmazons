@@ -1,6 +1,7 @@
 #pragma GCC target("popcnt")
 #pragma GCC optimize("unroll-loops")
 #pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2")
+#pragma GCC optimize(2)
 #include <random>
 #include <cstring>
 #include <iostream>
@@ -12,12 +13,14 @@ typedef unsigned long long u64;
 typedef unsigned u32;
 typedef unsigned char u8;
 
-double T = 1;
+double T = 1.0;
 inline void checkTime()
 {
 	static u32 cnt = 0;
-	if (++cnt % (1u << 14) == 0 && double(clock()) > CLOCKS_PER_SEC * T)
+	if (++cnt > (1u << 20))
 	{
+		// std::cout << "use time:" << double(clock()) / CLOCKS_PER_SEC << "s" << std::endl;
+		// std::cout << "count:" << cnt << std::endl;
 		exit(0);
 	}
 }
@@ -552,7 +555,7 @@ inline board initboard_new()
 			block |= 1ull << id(x, y);
 		}
 	}
-
+	// printf("self:%lld, opp:%lld, block:%lld", self, opp, block);
 	return board(self, opp, block);
 }
 
