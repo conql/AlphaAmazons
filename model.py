@@ -118,10 +118,12 @@ class NeuralNet:
 
         data = torch.zeros((7, 8, 8))
 
+        assert player in [1, 2]
+
         data[0, :, :] = (board == player).float()
         data[1, :, :] = (board == 3 - player).float()
         data[2, :, :] = (board == 3).float()
-    
+
         if stage == 1:
             if board[preActionY, preActionX] != player:
                 pprint(board)
@@ -135,10 +137,6 @@ class NeuralNet:
             data[4, preActionY, preActionX] = 1
             data[6, :, :] = 1
 
-        # swap first two channels if playing as player 2
-        if player != 1:
-            data[[0, 1], ...] = data[[1, 0], ...]
-
         if config.use_gpu:
             data = data.cuda()
 
@@ -148,22 +146,23 @@ class NeuralNet:
     def process_output(
         value, answerX, answerY, board, player, stage, preActionX=None, preActionY=None
     ):
-        valid_moves = game.get_valid_moves(
-            board, player, stage, preActionX, preActionY
-        )
-        valid_moves = torch.tensor(valid_moves)
-        if config.use_gpu:
-            valid_moves = valid_moves.cuda()
-        
-        policy = torch.zeros((8, 8))
-        policy[valid_moves == 1] = 0.0001
-        policy[valid_moves == 0] = 0
+        # valid_moves = game.get_valid_moves(board, player, stage, preActionX, preActionY)
+        # valid_moves = torch.tensor(valid_moves)
+        # if config.use_gpu:
+        #     valid_moves = valid_moves.cuda()
 
-        if policy[answerY, answerX] == 0:
-            pprint(board)
-            raise ValueError("Invalid move")
+        policy = torch.zeros((8, 8))
+        # policy[valid_moves == 1] = 0.0001
+        # policy[valid_moves == 0] = 0
+
+        # if policy[answerY, answerX] == 0:
+        #     pprint(board)
+        #     raise ValueError("Invalid move")
 
         policy[answerY, answerX] = 1
+
+        if config.use_gpu:
+            policy = policy.cuda()
 
         return policy, value
 
@@ -195,7 +194,9 @@ class NeuralNet:
                 (board, player, stage, preActionX, preActionY), pis, vs = list(
                     zip(*[examples[i] for i in sample_ids])
                 )
-                input_data = self.process_input(board, player, stage, preActionX, preActionY)
+                input_data = self.process_input(
+                    board, player, stage, preActionX, preActionY
+                )
                 target_pis = torch.FloatTensor(np.array(pis))
                 target_vs = torch.FloatTensor(np.array(vs).astype(np.float64))
 
