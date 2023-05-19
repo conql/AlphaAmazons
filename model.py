@@ -112,7 +112,8 @@ class NeuralNet:
         #       [5, ] stage 1 flag
         #       [6, ] stage 2 flag
 
-        board = torch.tensor(board)
+        if not isinstance(board, torch.Tensor):
+            board = torch.tensor(board)
         if config.use_gpu:
             board = board.cuda()
 

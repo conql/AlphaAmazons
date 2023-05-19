@@ -12,7 +12,7 @@ def md5(data):
     return hashlib.md5(data).hexdigest()
 
 
-def horizontal_flip(board: numpy.ndarray, answer):
+def horizontal_flip(board: numpy.ndarray, answer, value):
     board2 = numpy.fliplr(board)
     answer2 = (
         7 - answer[0],
@@ -23,10 +23,10 @@ def horizontal_flip(board: numpy.ndarray, answer):
         answer[5],
     )
 
-    return [(board, answer), (board2, answer2)]
+    return [(board, answer, value), (board2, answer2, value)]
 
 
-def vertical_flip(board: numpy.ndarray, answer):
+def vertical_flip(board: numpy.ndarray, answer, value):
     board2 = numpy.flipud(board)
     answer2 = (
         answer[0],
@@ -37,10 +37,10 @@ def vertical_flip(board: numpy.ndarray, answer):
         7 - answer[5],
     )
 
-    return [(board, answer), (board2, answer2)]
+    return [(board, answer, value), (board2, answer2, value)]
 
 
-def rotate(board: numpy.ndarray, answer):
+def rotate(board: numpy.ndarray, answer, value):
     board2 = numpy.rot90(board, k=1)
     answer2 = (
         answer[1],
@@ -71,19 +71,23 @@ def rotate(board: numpy.ndarray, answer):
         answer[4],
     )
 
-    return [(board, answer), (board2, answer2), (board3, answer3), (board4, answer4)]
+    return [
+        (board, answer, value),
+        (board2, answer2, value),
+        (board3, answer3, value),
+        (board4, answer4, value),
+    ]
 
 
-def augment(func, data: list[tuple[numpy.ndarray, tuple]]):
+def augment(func, data: list[tuple[numpy.ndarray, tuple, int]]):
     new_data = []
-    for board, answer in data:
-        new_data.extend(func(board, answer))
-
+    for board, answer, value in data:
+        new_data.extend(func(board, answer, value))
     return new_data
 
 
 if __name__ == "__main__":
-    input_path = "data/init/*.pickle"
+    input_path = "data/init2/*.pickle"
     output_path = "data/augment3"
     multiplier = 0
 
@@ -96,7 +100,9 @@ if __name__ == "__main__":
     for path in input_paths:
         data = {**data, **pickle.load(open(path, "rb"))}
 
-    new_data = {}
+    new_data = set()
+    current_block = {}
+    id = 0
 
     for key, round in tqdm(data.items(), unit="round"):
         rounds = [round]
@@ -116,15 +122,21 @@ if __name__ == "__main__":
             add = random.sample(rounds, k=multiplier)
         else:
             add = rounds
-        for board, ans in add:
-            new_data[md5(board.tobytes())] = (board, ans)
+        
+        for board, ans, value in add:
+            key = md5(board.tobytes())
+            if key not in new_data:
+                val = (board, ans, value)
+                current_block[key] = val
+                new_data.add(key)
+
+        if len(current_block) >= 200000:
+            pickle.dump(
+                current_block,
+                open(os.path.join(output_path, f"{id:03d}.pickle"), "wb"),
+            )
+            current_block = {}
+            id += 1
 
     print(f"Original size: {len(data)}")
     print(f"Augmented size: {len(new_data)}")
-
-    # split into several files
-    for i in tqdm(range(0, len(new_data), 10000), unit="file", desc="Saving"):
-        pickle.dump(
-            dict(list(new_data.items())[i : i + 10000]),
-            open(os.path.join(output_path, f"{i // 10000:03d}.pickle"), "wb"),
-        )
