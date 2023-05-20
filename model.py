@@ -10,7 +10,7 @@ import game
 
 boardH = 8
 boardW = 8
-in_channel = 7
+in_channel = 5
 
 
 class CNNLayer(nn.Module):
@@ -92,7 +92,7 @@ class Resnet(nn.Module):
 
 class NeuralNet:
     def __init__(self):
-        self.model = Resnet(40, 128)
+        self.model = Resnet(config.residual_blocks, config.residual_channels)
 
         if config.use_gpu:
             self.model.cuda()
@@ -117,7 +117,7 @@ class NeuralNet:
         if config.use_gpu:
             board = board.cuda()
 
-        data = torch.zeros((7, 8, 8))
+        data = torch.zeros((in_channel, 8, 8))
 
         assert player in [1, 2]
 
@@ -130,13 +130,13 @@ class NeuralNet:
                 pprint(board)
                 raise ValueError("Moving non-player piece")
             data[3, preActionY, preActionX] = 1
-            data[5, :, :] = 1
+            # data[5, :, :] = 1
         elif stage == 2:
             if board[preActionY, preActionX] != player:
                 pprint(board)
                 raise ValueError("Placing obstacle from non-player piece")
             data[4, preActionY, preActionX] = 1
-            data[6, :, :] = 1
+            # data[6, :, :] = 1
 
         if config.use_gpu:
             data = data.cuda()
