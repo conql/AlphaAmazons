@@ -1,4 +1,4 @@
-from pprint import pprint
+# from pprint import pprint
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -240,14 +240,12 @@ def process_input(board, player, stage, preActionX=None, preActionY=None):
         data[4, preActionY, preActionX] = 1
         data[6, :, :] = 1
 
-    # swap first two channels if playing as player 2
-    if player != 1:
-        data[[0, 1], ...] = data[[1, 0], ...]
-
     return data
 
 
-def predict(model, chessboard: Chessboard, player, stage, preActionX=None, preActionY=None):
+def predict(
+    model, chessboard: Chessboard, player, stage, preActionX=None, preActionY=None
+):
     board = chessboard.board
     input_data = process_input(board, player, stage, preActionX, preActionY)
     input_data = input_data.unsqueeze(0)
@@ -258,7 +256,7 @@ def predict(model, chessboard: Chessboard, player, stage, preActionX=None, preAc
     policy = policy[0]
     policy_prob = F.softmax(policy.view(-1), dim=0).view(policy.shape)
 
-    pprint(policy_prob.log10().round(decimals=2))
+    # pprint(policy_prob.log10().round(decimals=2))
 
     # mask invalid moves
     valid_moves = chessboard.get_valid_moves(player, stage, preActionX, preActionY)
@@ -272,7 +270,7 @@ def predict(model, chessboard: Chessboard, player, stage, preActionX=None, preAc
 
     answer = policy_prob.view(-1).argmax().item()
 
-    return (answer % 8, answer // 8)
+    return (answer % 8, answer // 8, value)
 
 
 def load_model(model_path):
@@ -283,7 +281,7 @@ def load_model(model_path):
 
 
 if __name__ == "__main__":
-    model = load_model("data/model_07_40x128.pt")
+    model = load_model("data/resnet_01_40x128.pt")
     chessboard = Chessboard()
 
     round = int(input())
@@ -295,10 +293,11 @@ if __name__ == "__main__":
             continue
         chessboard.add(line)
 
-    pieceX, pieceY = predict(model, chessboard, player, 0)
-    moveX, moveY = predict(model, chessboard, player, 1, pieceX, pieceY)
+    pieceX, pieceY, value1 = predict(model, chessboard, player, 0)
+    moveX, moveY, value2 = predict(model, chessboard, player, 1, pieceX, pieceY)
     chessboard.board[pieceY, pieceX] = 0
     chessboard.board[moveY, moveX] = player
-    obstacleX, obstacleY = predict(model, chessboard, player, 2, moveX, moveY)
+    obstacleX, obstacleY, value3 = predict(model, chessboard, player, 2, moveX, moveY)
 
     print(pieceX, pieceY, moveX, moveY, obstacleX, obstacleY)
+    # print(value1.item(), value2.item(), value3.item())
